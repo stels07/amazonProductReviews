@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>TSNE Amazon Plot</title>
+       <!--  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script> -->
+        <script src="//d3js.org/d3.v4.min.js"></script>
+        <style type="text/css">
+            body {
+                background-color: white;
+                font-family: Helvetica, Arial, sans-serif;
+            }
+            h2 {
+                font-size: 24px;
+                margin: 20px;
+            }
+            p {
+                font-size: 14px;
+                margin: 15px;
+            }
+            svg {
+                background-color: white;
+            }
+            circle {
+                opacity: .5;
+                cursor: pointer;
+            }
+            circle:hover {
+                fill: orange;
+            }
+            text.word {
+                font-size: "5px";
+                stroke-opacity: .8;
+                cursor: pointer;
+            }
+            .hidden {
+                display: none;
+            }
+            .axis path,
+            .axis line {
+                fill: none;
+                stroke: black;
+                shape-rendering: crispEdges;
+            }
+            .axis text {
+                font-family: sans-serif;
+                font-size: 11px;
+            }
+        div.partofreview {   
+    position: absolute;         
+    text-align: center;         
+    width: 260px;                                     
+    padding: 2px;               
+    font: 12px sans-serif;      
+    background: lightsteelblue; 
+    border: 0px;        
+    border-radius: 8px;         
+    pointer-events: none;           
+}
+        </style>
+    </head>
+
+    <body>
+
+        <h2>Amazon Whiteboard Review Words</h2>
+
+        <p></p>
+
+
+<form action="">
+<input class="filter_button" type="checkbox" name="" value="0">1st item
+<input class="filter_button" type="checkbox" name="" value="1">2nd item
+<input class="filter_button" type="checkbox" name="" value="2">3rd item
+<input class="filter_button" type="checkbox" name="" value="3">4th item
+    <input class="filter" 
+           name="filter" 
+           type="button" 
+           value="Filter out Neutral Words"  />
+    <input class="filter_1" 
+           name="filter" 
+           type="button" 
+           value="Show Words"  />
+</form>
+
+ 
+        <script type="text/javascript">
+
+            var dispatch = d3.dispatch("load", "itemchange","filterchange","showwords");
+
+            var fullWidth = 1100;
+            var fullHeight = 900;
+            var margin = {top:20, right:10, bottom:50, left:50};  //Top, right, bottom, left
+            var width = fullWidth - margin.left - margin.right;
+            var height = fullHeight - margin.top - margin.bottom;
+            var colorScale = d3.scaleLinear().range(["red", "gray", "blue"]);
+            var xScale = d3.scaleLinear()
+                                .range([ 0, width-20]);
+            // top to bottom:
+            var yScale = d3.scaleLinear()
+                                .range([ height, 0 ]);
+            //  Custom tick count -- 15. // still needs a transform on it
+            var xAxis = d3.axisBottom()
+                            .scale(xScale)
+                            
+        // Custom format on ticks - just a string return, not a function here
+            var yAxis = d3.axisLeft()
+                            .scale(yScale)
+            var brush = d3.brush()         
+            var svg_1 = d3.select("body")
+                        .append("svg")
+                        .attr("width", fullWidth)
+                        .attr("height", fullHeight)
+                        
+
+            var svg=svg_1.append("g")
+                        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+                        .attr("class","brush")
+                            .call(brush
+                                .extent([[0, 0], [fullWidth, fullHeight]])
+                                .on("brush", brushend))
+                                //.on("end", brushend));
+
+            colorScale.domain([-5, 0, 5]);
+            var color = d3.scaleOrdinal(d3.schemeCategory10)
+                    .domain(["B00BH9GNYU", "B00BH9GNVS", "B00FW6S1NA", "B00FW6S3P6"])
+                    .range(["#377eb8", "#984ea3", "#ff7f00", "#FFC0CB"]);   
+
+
+	   var text_g=d3.select("body").append("g") 
+	          .attr("class", "review_text")
+	          .attr("transform", "translate(0," + (height+10) + ")")
+	          .attr("opacity",0.5)  
+
+        var text_n=d3.select("body").append("g") 
+              .attr("class", "brush_word")
+              .attr("transform", "translate(1000,10)")
+              .attr("opacity",0.5)  
+
+        var div_1 = d3.select("body").append("div")   
+    .attr("class", "partofreview")               
+    .style("opacity", 0);
+        // var div_n=text_n.append("div")
+        //     .attr("class", "listofwords")
+        //     .style("position","fixed")
+        //     .style("left","1100px")
+        //     .style("top","20px")
+        
+        var div = text_g.append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0.8);
+
+
+        var item_list=[false,false,false,false]
+        var filter_state="Filter out Neutral Words"
+        var onDblClick=false;
+        var data_all=[]
+        
+          
+        d3.json("office_v1.json", function(data) {
+            //console.log(data)
+        	count=0
+        	data.forEach(function(d){d.id=count; count++;})
+
+            dispatch.call("load", this, data);
+            data_all=data;
+           // dispatch.call("itemchange", this, data.filter(function(d){return d.asin=="B00BH9GNYU";}));
+        });
+
+        dispatch.on("load.select", function(data) {
+            //console.log("load.select data ")
+            //console.log(data)
+            
+            d3.selectAll(".filter_button")
+                    .on("change", function() {
+                        //console.log(this.value, this.checked)
+                        item_list[this.value]=!item_list[this.value]
+                        dispatch.call("itemchange",this)
+            });
+            d3.select(".filter")
+                .on("click", function(){
+                    if(this.value=="Filter out Neutral Words"){
+                        this.value="Add back neutral words"
+                        filter_state="Add back neutral words"
+                        dispatch.call("filterchange", this)   
+                    }else{
+                        this.value="Filter out Neutral Words"
+                        filter_state="Filter out Neutral Words"
+                        dispatch.call("filterchange", this)  
+                    }
+                })
+           d3.select(".filter_1")
+                .on("click", function(){
+                    if(this.value=="Show Words"){
+                        this.value="Hide Words"
+                        //filter_state="Show Words"
+                        dispatch.call("showwords", this, true)   
+                    }else{
+                        this.value="Show Words"
+                        //filter_state="Filter out Neutral Words"
+                        dispatch.call("showwords", this,false)  
+                    }
+                })
+        });
+
+        dispatch.on("load.plot", function(data){
+            //console.log(data[0])
+            var points = svg.selectAll(".points")
+                        .data([])
+                        .enter()
+                        .append("circle")
+                        .attr("class", "points")
+
+                xScale.domain(
+                    d3.extent(data, function(d) {
+                        return +d.x;
+                    }));
+                yScale.domain(
+                    d3.extent(data, function(d) {
+                        return +d.y;
+                    }));
+
+
+                points
+                    .attr("cx", function(d) {
+                        return xScale(+d.x);
+                    })
+                    .attr("cy", function(d) {
+                        return yScale(+d.y);
+                    })
+                    .attr("r", 4)
+                    .attr("pointer-events", "all")
+                //points.attr("d", d3.svg.symbol().type("triangle-up"))
+                  //  .attr("transform", function(d) { return "translate(" + xScale(+d.x) + "," + (height-yScale(+d.y)) + ")"; })
+                    // .style("fill", function(d) {
+                    //     if(+d.sentiment==100){ return "grey"}
+                    //     return colorScale(+d.sentiment);
+                    // })
+                    .style("fill", function(d){if(+d.sentiment==100){ return "grey"} return color(d.asin);})
+                    .attr("id", function(d) {
+                        //return 'id' + d.id; 
+                        return "id"+d.id;
+                    })
+                    .attr("review_id", function(d) {
+                        return "id"+d.review_id;
+                    })
+                    .append("title")
+                    .attr('stroke','#000')
+                    .attr('stroke-width',1)
+                    .text(function(d) {
+                        return d.word;
+                    });
+
+                var labels = svg.selectAll("text")
+                    .data([])
+                    .enter()
+                    .append("text")
+                    .attr("class", "word")
+                    .attr("id", function(d) {
+                        return "id"+d.id;
+                    })
+                    .attr("pointer-events", "all")
+                    .attr("review_id", function(d) {
+                        return "id"+d.review_id;
+                    })                    
+                    .text(function(d) {return d.word;})
+                    .attr("x", function(d) {
+                        return xScale(+d.x);
+                    })
+                    .attr("y", function(d) {
+                        return yScale(+d.y);
+                    })
+                    .attr("dx", 2)
+                    .attr("dy", 2)
+                    .attr("font-size", 10)
+                    .attr("text-anchor", "start")
+                    .classed("hidden", true)
+                    .on("click", function (d) {
+                        return d3.select(this).classed("hidden", true);
+                    });
+                points.on('click', function() {
+                    var id = d3.select(this).attr("id");
+                    console.log(d3.select("text.word#"+id))
+                    d3.select("text.word#"+id).classed("hidden", false);
+                });
+
+                points.on('dblclick', function() {             
+                    var selected = d3.select(this);
+                    console.log(selected.attr("review_id"))
+                    updateView(selected.attr("review_id"),data)
+                    showReview(selected)
+                });
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis);
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis);
+
+
+
+          dispatch.on("itemchange.plot", 
+            function(){
+                data_1=getData(data)
+                //console.log(data_1)
+                updatePlot(data_1)
+            });
+        dispatch.on("filterchange", function(){
+            data_1=getData(data)
+            updatePlot(data_1)
+        })
+        dispatch.on("showwords", function(d){
+            if(d){
+            showWords()               
+        }else{
+            hideWords()             
+        }
+
+        })
+          
+    });
+
+
+    function updateView(reviewid,data){
+            onDblClick=true;
+        	var points = svg.selectAll("circle")
+        	console.log(reviewid)
+        	//console.log(data.filter(function(d){return ("id"+d.review_id)==review_id;}))
+
+           //  points.select("word#"+review_id)
+        			// .attr("r", 10)
+// To select all text element having an attribute value :-
+// var texts = d3.selectAll("text[attrName=attrValue]");
+        	var labels = svg.selectAll("text")
+            //console.log(d3.selectAll('text[review_id='+reviewid+']'))
+        	d3.selectAll('text[review_id='+reviewid+']')
+        			.attr("font-size", 20)
+        			.style("fill", function(d){if(+d.sentiment==100){ return "grey"} return color(d.asin);})
+        			.classed("hidden", false)
+        }
+
+
+    function showReview(data_selected){
+      console.log(data_selected.data()[0].text)
+      // var text_html=text_g
+      //       .selectAll('div')  
+      //       .data(data_selected)
+      //       .enter().append("div")
+      //       .text(function(d){console.log(d);return "------------------------------------"+"<br>"+d.data()[0].text+"<br>";})
+      var str=data_selected.data()[0].text
+      var str_sum=data_selected.data()[0].summary
+      var reviewid=data_selected.attr("review_id")
+      var keywords=d3.selectAll('text[review_id='+reviewid+']').data()
+      
+      var newdata=keywords.filter(function(d){return d.sentiment!=100})
+      console.log(newdata)
+      var newStr=str
+      var color_1
+      var count=0
+      newdata.forEach(function(d){
+        if(newStr.indexOf(d.word)>=0){
+            //console.log(str.substring(count,str.indexOf(d.word)-1))
+            if(d.sentiment>0 && d.sentiment<100)
+                color_1="#31a354"
+            else
+                color_1="#fc9272"
+            newStr=newStr.substring(0, newStr.indexOf(d.word))+ "<span style='color:"+color_1+"';>"+d.word+"</span>" + newStr.substring(newStr.indexOf(d.word)+ d.word.length)
+            //console.log(newStr.substring(0, str.indexOf(d.word)))
+        }
+        //console.log(newStr)
+      })
+      //newStr=newStr+left_str
+      //console.log(color(data_selected.data()[0].asin))
+      div.html("<h4 style='color:"+ color(data_selected.data()[0].asin)+"';>"+str_sum+"</h4><p>"+newStr+"<p>")
+    }
+
+    function getData(data){
+        lookup=["B00BH9GNYU", "B00BH9GNVS", "B00FW6S1NA", "B00FW6S3P6"]
+        var res=[]
+        for (i=0;i<item_list.length;i++){
+            if(item_list[i]){
+                console.log(lookup[i])
+                //console.log(data.filter(function(d){return d.asin==lookup[i]}))
+                if(filter_state=="Filter out Neutral Words"){
+                    res=res.concat(data.filter(function(d){return d.asin==lookup[i]}))
+                }else{
+                    res=res.concat(data.filter(function(d){return (d.asin==lookup[i] && d.sentiment!=100)}))
+                }
+            }
+        }
+        return res
+    }
+
+    function updatePlot(data){
+            var p=svg.selectAll(".points")
+                        .data(data, function(d){return d.id;})   //need to reselect, and select and data() have to be together!!
+                p.exit().remove();
+                
+                p.enter().append("circle")
+                    .attr("class", "points")
+                    .attr("cx", function(d) {
+                        return xScale(+d.x);
+                    })
+                    .attr("cy", function(d) {
+                        return yScale(+d.y);
+                    })
+                    .attr("r", 4)
+                    .attr("pointer-events", "all")
+                //points.attr("d", d3.svg.symbol().type("triangle-up"))
+                  //  .attr("transform", function(d) { return "translate(" + xScale(+d.x) + "," + (height-yScale(+d.y)) + ")"; })
+                    // .style("fill", function(d) {
+                    //     if(+d.sentiment==100){ return "grey"}
+                    //     return colorScale(+d.sentiment);
+                    // })
+                    .style("fill", function(d){if(+d.sentiment==100){ return "grey"} return color(d.asin);})
+                    .attr("id", function(d) {
+                        //return 'id' + d.id; 
+                        return "id"+d.id;
+                    })
+                    .attr("review_id", function(d) {
+                        return "id"+d.review_id;
+                    })
+                    .append("title")
+                    .attr('stroke','#000')
+                    .attr('stroke-width',1)
+                    .text(function(d) {
+                        return d.word;
+                    })
+                var labels = svg.selectAll(".word")
+                    .data(data, function(d){return d.id;})
+                labels.exit().remove();
+                labels.enter()
+                    .append("text")
+                    .attr("class", "word")
+                    .attr("id", function(d) {
+                        return "id"+d.id;
+                    })
+                    .attr("review_id", function(d) {
+                        return "id"+d.review_id;
+                    })                    
+                    .text(function(d) {return d.word;})
+                    .attr("x", function(d) {
+                        return xScale(+d.x);
+                    })
+                    .attr("y", function(d) {
+                        return yScale(+d.y);
+                    })
+                    .attr("dx", 2)
+                    .attr("dy", 2)
+                    .attr("pointer-events", "all")
+                    .attr("font-size", 10)
+                    .attr("text-anchor", "start")
+                    .classed("hidden", true)
+                    .on("click", function (d) {
+                        return d3.select(this).classed("hidden", true);                  
+                    })
+                    
+                    // .on("rightclick", function(d){
+                    //     console.log("here")
+                    //     return d3.selectAll('text[review_id='+d3.select(this).attr("review_id")+']').classed("hidden", true);
+                    // });
+               svg.selectAll(".points").on('click', function() {  //here need to re-select. cannot use p
+                    var id = d3.select(this).attr("id");
+                    // d3.select(".brush").call(brush.move, null);
+                   // console.log(d3.event)
+                    console.log(d3.select("text.word#"+id))
+                    d3.select("text.word#"+id).classed("hidden", false)
+                    .style("fill", function(d){if(+d.sentiment==100){ return "black"} return color(d.asin);})
+                     })
+                    .on('dblclick', function() {             
+                        var selected = d3.select(this);
+                        console.log(selected.attr("review_id"))
+                        updateView(selected.attr("review_id"),data)
+                        showReview(selected)
+                    })
+                
+               
+        
+        var tooltip = d3.selectAll(".word");
+        var tooltipWithContent = d3.selectAll(".points, .word, .filter, .filter_1");
+
+        function equalToEventTarget() {
+            return this == d3.event.target;
+        }
+
+        d3.select("body").on("click",function(){
+            var outside = tooltipWithContent.filter(equalToEventTarget).empty();
+            console.log(outside)
+            onDblClick=false
+            div.html("")
+            if (outside) {
+                tooltip.classed("hidden", true);
+            }
+        });
+
+        // svg.call(brush.extent([[0, 0], [fullWidth, fullHeight]])
+        //                         .on("brush", brushmove)
+        //                         .on("end", brushend));
+    }
+    function showWords(data){ 
+        var labels = svg.selectAll(".word").classed("hidden", false)
+    }
+    function hideWords(data){ 
+        var labels = svg.selectAll(".word").attr("font-size", 10).classed("hidden", true).style("fill", function(d){if(+d.sentiment==100){ return "grey"} return color(d.asin);})
+    }   
+
+    function brushmove() {
+      // var e= d3.event.selection;
+      // //console.log(e[0][0])
+      // svg.selectAll(".points").classed("hidden", function(d) {       
+      //   return e[0][0] > (xScale(d.x) -margin.left) || (xScale(d.x)-margin.left) > e[1][0]
+      //           || e[0][1] > yScale(d.y) || yScale(d.y) > e[1][1];});
+     
+    }
+  
+    function brushend(){
+    if (!d3.event.selection) return;
+      var e= d3.event.selection;
+      if (e==null) {
+        svg.selectAll("circle").attr("class","points")
+        text_n.selectAll("div").remove();
+        return;
+      }
+    updatetext(e);
+    console.log(e);
+    // d3.event.target.clear(); //-get rid of the brush
+    //d3.select(this).call(d3.event.target);
+    }
+
+    function updatetext(e){
+    data_1=getData(data_all)
+    console.log(e)
+      data_selected = data_1.filter(function(d) {      
+        return e[0][0] < xScale(d.x)  && xScale(d.x) < e[1][0]
+                && e[0][1] < yScale(d.y) && yScale(d.y) < e[1][1];});
+      console.log(data_selected);
+      //console.log(text_g.selectAll("div").data());
+      //var str=""
+      //data_selected.forEach(function(d){str=str+"<br>"+d.word})
+      var count=0
+
+      //console.log(str)
+      //div_n.html(str)
+      var text_html=text_n.selectAll("div");
+      text_html.remove()
+
+      // if(data_selected.length==0) {
+        var letter_count=50
+        var text_html=text_n.selectAll("div").data(data_selected)
+            .enter().append("div")
+            .style("position","fixed")
+            .style("left","1100px")
+            .style("top", function(d){ count+=1; return (20+count*20)+"px";})
+            .style("color", function(d){ return color(d.asin);})
+            .html(function(d){return d.word;})
+        .on("mouseover", function(d) {   
+            var start=0
+            var finish=d.text.length
+            var str
+            if(d.text.indexOf(d.word)==-1){
+                str=d.summary
+            }else{
+            if(d.text.indexOf(d.word)>letter_count){
+                start=d.text.indexOf(d.word)-letter_count
+            }
+            if(d.text.indexOf(d.word)+d.word.length+letter_count<finish){
+                finish=d.text.indexOf(d.word)+d.word.length+letter_count
+            }
+            str=d.text.substring(start,d.text.indexOf(d.word))+" <b>"+d.word+"</b> "+d.text.substring(d.text.indexOf(d.word)+d.word.length+1, finish)
+        }
+            //console.log(str)
+            //console.log(d.text)
+            div_1.transition()        
+                .duration(100)      
+                .style("opacity", .9);      
+            div_1 .html(str)  
+                .style("left", (d3.event.pageX) + "px")     
+                .style("top", (d3.event.pageY - 28) + "px");    
+            })                  
+        .on("mouseout", function(d) {       
+            div_1.transition()        
+                .duration(100)      
+                .style("opacity", 0);   
+        })
+        
+
+    }
+
+        </script>
+    
+
+
+    </body>
+</html>

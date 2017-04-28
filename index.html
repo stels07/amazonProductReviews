@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+<!--   <script src="https://cdn.rawgit.com/scienceai/tsne-js/master/build/tsne.min.js"></script> -->
+<!--   <style>
+    body { margin:0;position:fixed;top:0;right:0;bottom:0;left:0; }
+  </style> -->
+</head>
+<style>
+/*div { 
+    position: absolute;     
+    text-align: left;     
+    width: 900px;          
+    padding: 2px;       
+    font: 12px sans-serif;    
+    background: lightsteelblue; 
+    border: 0px;    
+    border-radius: 8px;     
+    pointer-events: none;     
+}*/
+div.tooltip { 
+    position: absolute;     
+    text-align: center;     
+    width: 200px;          
+    height: 50px;         
+    padding: 2px;       
+    font: 12px sans-serif;    
+    background: lightsteelblue; 
+    border: 0px;    
+    border-radius: 8px;     
+    pointer-events: none;     
+}
+
+  circle {
+    fill-opacity: .7;
+  }
+
+circle.hidden {
+    fill: #ccc !important;
+  }
+</style>
+<body>
+<select id="inds">
+    <option value="book-test-w2s" selected="selected">booktest-s2v</option>
+    <option value="book-w2v">book-w2v</option>
+    <option value="office_product-w2v">officeproduct-w2v</option>
+    <option value="book-w2s">book-s2v</option>
+</select>
+
+  <script>
+
+
+
+var margin = {top: 20, right: 20, bottom: 40, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var color = d3.scaleOrdinal()
+        .domain(["0","1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5"])
+        .range(["black","#ffffcc", "#ffeda0", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026"]);
+
+  d3.select('#inds')
+      .on("change", function () {
+        var sect = document.getElementById("inds");
+        var section = sect.options[sect.selectedIndex].value;
+        //console.log(sect)
+        //console.log(section)
+        
+        //debugger
+        //updateGraph(data);
+        if(section=="book-test-w2s"){
+          d3.select("svg").remove()
+          d3.select("div").remove()
+          start("result_test.json")
+        }else if(section=="book-w2v"){
+          d3.select("svg").remove()
+          d3.select("div").remove()
+          start("result_w2v_039X.json")
+        }else if(section=="office_product-w2v"){
+          d3.select("svg").remove()
+          d3.select("div").remove()
+          start("result_w2v_office.json")
+        }else{
+          d3.select("svg").remove()
+          d3.select("div").remove()
+          start("result_book.json")
+        }
+
+      });
+
+  // generate initial graph
+  // data = filterJSON(json, 'produce', 'apples');
+  // updateGraph(data);
+
+start("result_test.json");
+
+
+
+function start(file){
+
+d3.json(file, function(data) {
+
+
+  //console.log(data);
+  var count=0
+  var max_x=0
+  data.forEach(function(d){ count++;  return d.id=count;})
+
+
+  var x = d3.scaleLinear().domain([d3.min(data, function(d) { return d.x; })-20, d3.max(data, function(d) { return d.x; })+20])
+      .range([0, width]);
+  var y = d3.scaleLinear().domain([d3.min(data, function(d) { return d.y; })-20, d3.max(data, function(d) { return d.y; })+20])
+
+      .range([height, 0]);
+  var xAxis = d3.axisBottom().scale(x);
+      
+  var yAxis = d3.axisLeft().scale(y);
+  //color=d3.scaleOrdinal(d3.schemeCategory10);
+ // var color = d3.scaleOrdinal(d3.schemeCategory10);
+
+
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+var brush = d3.brush()
+            //.on("brush", brushmove)
+            //.on("brushend", brushend);
+
+  // load data
+
+       // Add the X Axis
+      svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + height + ")")
+          .attr("opacity",0.5)
+          .call(xAxis);
+      // Add the Y Axis
+      svg.append("g")
+          .attr("class", "y axis")
+          .attr("opacity",0.5)
+          .call(yAxis);
+
+      var text_g=d3.select("body").append("g") 
+          .attr("class", "text x")
+          .attr("transform", "translate(0," + (height+10) + ")")
+          .attr("opacity",0.5)
+
+    // Define the div for the tooltip
+    var div = d3.select("body").append("div") 
+    .attr("class", "tooltip")       
+    .style("opacity", 0);
+
+
+     svg.selectAll("circle")
+        .data(data, function(d){return d.id;})
+      .enter().append("circle")
+      .attr("class","dot")
+        //.attr("r", function(d){return d.review_count/10.0;})
+        .attr("r", function(d){return 3;})
+        .attr("fill", function(d){return color(d.overall);})
+        .attr("cx", function(d) { return x(d.x); })
+        .attr("cy", function(d) { return y(d.y); })
+        .on("mouseover", function(d) {    
+            div.transition()    
+                .duration(100)    
+                .style("opacity", .9);    
+            div .html(d.text+ "<br/>" )  
+                .style("left", (d3.event.pageX) + "px")   
+                .style("top", (d3.event.pageY - 28) + "px");  
+            })          
+        .on("mouseout", function(d) {   
+            div.transition()    
+                .duration(100)    
+                .style("opacity", 0); 
+        });
+
+
+  svg.append("g")
+    .attr("class", "brush")
+    .call(brush
+        .extent([[0, 0], [width, height]])
+        .on("brush", brushmove)
+        .on("end", brushend));
+
+
+    function brushmove() {
+      var e= d3.event.selection;
+      //console.log(e[0][0])
+      svg.selectAll(".dot").classed("hidden", function(d) {       
+        return e[0][0] > x(d.x )|| x(d.x) > e[1][0]
+                || e[0][1] > y(d.y) || y(d.y) > e[1][1];});
+     
+    }
+
+  
+    function brushend(){
+      var e= d3.event.selection;
+      if (e==null) {
+        svg.selectAll("circle").attr("class","dot")
+        text_g.selectAll("div").remove();
+        return;
+      }
+    updatetext(e);
+    //console.log(e);
+    }
+
+    function updatetext(e){
+
+      data_selected = data.filter(function(d) {       
+        return e[0][0] < x(d.x )&& x(d.x) < e[1][0]
+                && e[0][1] < y(d.y) && y(d.y) < e[1][1];});
+
+      //console.log(data_selected);
+
+      //console.log(text_g.selectAll("div").data());
+      
+      var text_html=text_g.selectAll("div");
+
+      if(text_html.data().length==0){   //first time brush, no div yet
+            text_html.data(data_selected,function(d){return d.id;})
+            .enter().append("div")
+            //.transition()
+            //.duration(100)
+            .html(function(d){return "------------------------------------"+"<br><b>"+d.summary+"</b><br>"+d.text;})
+      }else{
+            //console.log(text_html.data())
+
+            var t=text_html.data(data_selected,function(d){return d.id;})
+
+            t.exit().remove()
+            t.enter().append("div")
+            .html(function(d){return "------------------------------------"+"<br><b>"+d.summary+"</b><br>"+d.text;})
+      }
+
+    }
+
+});
+}
+  </script>
+  </body>
