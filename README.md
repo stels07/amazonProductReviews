@@ -61,7 +61,7 @@ It is possible that user is more likely to associate red related color to negati
 
 ## Other efforts
 
-Four other experimental sub-projects were also done during the term of this project. Detailed information can be found in the [processbook]()
+Four other experimental sub-projects were also done during the term of this project. Detailed information can be found in the [processbook](processbook_shiwang_is.docx)
 
 One particular experimenting project is:
 #### review visualization with sentence embedding and t-sne (experiment)

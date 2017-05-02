@@ -58,21 +58,73 @@
     border-radius: 8px;         
     pointer-events: none;           
 }
+
+label:before {
+  content: url("https://cdn1.iconfinder.com/data/icons/windows8_icons_iconpharm/26/unchecked_checkbox.png");
+  position: absolute;
+  z-index: 100;
+}
+:checked+label:before {
+  content: url("https://cdn1.iconfinder.com/data/icons/windows8_icons_iconpharm/26/checked_checkbox.png");
+}
+input[type=checkbox] {
+  display: none;
+}
+/*pure cosmetics:*/
+img {
+  width: 150px;
+  height: 150px;
+}
+label {
+  margin: 10px;
+}
+a:link {
+    color: green;
+    background-color: transparent;
+    text-decoration: none;
+}
+a:hover {
+    color: red;
+    background-color: transparent;
+    text-decoration: underline;
+}
         </style>
     </head>
 
     <body>
 
-        <h2>Amazon Whiteboard Review Words</h2>
+        <h2>Amazon Product Reviews Comparison Using Word2Vev + Tsne</h2>
 
-        <p></p>
+        <p>4 amazon products (magnatic board) were selected for this demo. Products links are here: <br>
+        <a href="https://www.amazon.com/Quartet-Magnetic-Inches-Assorted-Colors/dp/B00BH9GNYU">Quartet Dry Erase Board     </a>   
+        <a href="https://www.amazon.com/Quartet-Magnetic-Dry-Erase-Aluminum-ukte2436-W/dp/B00BH9GNVS">Quartet Euro Frame Magnetic Dry-Erase Board     </a> 
+        <a href="https://www.amazon.com/Quartet-Bulletin-Board-Inches-MHOB1723-BK/dp/B00FW6S1NA">Quartet Cork Bulletin Board     </a> 
+        <a href="https://www.amazon.com/Quartet-Magnetic-Dry-Erase-Inches-MHOW1114-GN/dp/B00FW6S3P6">Quartet Magnetic Dry-Erase Board</a> <br><br>
+
+
+<input type="checkbox" id="myCheckbox1" value="0" class="filter_button"/>
+<label for="myCheckbox1">
+  <img src="/product_image/0.png">
+</label>
+<input type="checkbox" id="myCheckbox2" value="1" class="filter_button"/>
+<label for="myCheckbox2">
+  <img src="/product_image/1.png">
+</label>
+<input type="checkbox" id="myCheckbox3" value="2" class="filter_button"/>
+<label for="myCheckbox3">
+  <img src="/product_image/2.png">
+</label>
+<input type="checkbox" id="myCheckbox4" value="3" class="filter_button"/>
+<label for="myCheckbox4">
+  <img src="/product_image/3.png">
+</label>
 
 
 <form action="">
-<input class="filter_button" type="checkbox" name="" value="0">1st item
-<input class="filter_button" type="checkbox" name="" value="1">2nd item
-<input class="filter_button" type="checkbox" name="" value="2">3rd item
-<input class="filter_button" type="checkbox" name="" value="3">4th item
+<!-- <input class="filter_button" type="checkbox" name="" value="0">Quartet Dry Erase Board
+<input class="filter_button" type="checkbox" name="" value="1">Quartet Euro Frame Magnetic Dry-Erase Board
+<input class="filter_button" type="checkbox" name="" value="2">Quartet Cork Bulletin Board
+<input class="filter_button" type="checkbox" name="" value="3">Quartet Magnetic Dry-Erase Board <br> -->
     <input class="filter" 
            name="filter" 
            type="button" 
@@ -82,6 +134,8 @@
            type="button" 
            value="Show Words"  />
 </form>
+
+
 
  
         <script type="text/javascript">
